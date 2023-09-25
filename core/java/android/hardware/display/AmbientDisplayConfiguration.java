@@ -79,6 +79,7 @@ public class AmbientDisplayConfiguration {
     public boolean enabled(int user) {
         return pulseOnNotificationEnabled(user)
                 || pulseOnLongPressEnabled(user)
+                || pulseOnCustomDozeEventEnabled(user)
                 || alwaysOnEnabled(user)
                 || isAmbientTickerEnabled(user)
                 || wakeLockScreenGestureEnabled(user)
@@ -105,6 +106,12 @@ public class AmbientDisplayConfiguration {
     /** @hide */
     public boolean isAmbientTickerEnabled(int user) {
         return boolSettingDefaultOff(Settings.Secure.PULSE_ON_NEW_TRACKS, user);
+    }
+
+    /** @hide */
+    public boolean pulseOnCustomDozeEventEnabled(int user) {
+        return (Settings.System.getInt(mContext.getContentResolver(), Settings.System.DOZE_TRIGGER_DOUBLETAP, 0) != 0)
+                && pulseOnNotificationAvailable();
     }
 
     /** @hide */
@@ -157,7 +164,8 @@ public class AmbientDisplayConfiguration {
     /** @hide */
     public boolean screenOffUdfpsEnabled(int user) {
         return !TextUtils.isEmpty(udfpsLongPressSensorType())
-            && boolSettingDefaultOff("screen_off_udfps_enabled", user);
+            && boolSettingDefaultOff("screen_off_udfps_enabled", user)
+            && mContext.getResources().getBoolean(R.bool.config_supportScreenOffUdfps);
     }
 
     /** @hide */

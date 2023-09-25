@@ -73,6 +73,7 @@ import android.graphics.drawable.RotateDrawable;
 import android.media.AppVolume;
 import android.media.AudioManager;
 import android.media.AudioSystem;
+import android.media.MediaPlayer;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
@@ -350,6 +351,8 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
     private int customVolumeStyles = 0;
     private ThemeUtils mThemeUtils;
     
+    private MediaPlayer mediaPlayer = null;
+    
     private boolean mShowMediaController = true;
 
     @VisibleForTesting
@@ -429,6 +432,8 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         updateRingerModeIconSet();
         
         mThemeUtils = new ThemeUtils(mContext);
+        
+        initMediaPlayer();
     }
 
     /**
@@ -1511,25 +1516,50 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
 
     private Drawable getApplicationIcon(String packageName) {
         PackageManager pm = mContext.getPackageManager();
-        Drawable icon = null;
+        Drawable icon;
         try {
             icon = pm.getApplicationIcon(packageName);
         } catch (Exception e) {
-            // nothing to do
+            return null;
         }
-        
         Bitmap bitmapIcon = convertDrawableToBitmap(icon);
-        
-        Drawable drawableAppIcon = new CircleFramedDrawable(bitmapIcon,
-                (int) mContext.getResources().getDimension(R.dimen.volume_app_icon_max_size));
+        if (bitmapIcon == null) return null;
+        int maxSize = (int) mContext.getResources().getDimension(R.dimen.volume_app_icon_max_size);
+        return new CircleFramedDrawable(bitmapIcon, maxSize);
+    }
 
-        return drawableAppIcon;
+    private void setupAppVolumeIcon() {
+        Drawable icon = getApplicationIcon(mAppVolumeActivePackageName);
+        if (icon == null) return;
+        mAppVolumeIcon.setImageTintList(null);
+        mAppVolumeIcon.setImageDrawable(icon);
+        mAppVolumeIcon.getLayoutParams().height = mTargetTapSize;
+        mAppVolumeIcon.getLayoutParams().width = mTargetTapSize;
+        mAppVolumeIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        mAppVolumeIcon.setPadding(
+                mAppVolumeView.getPaddingLeft(),
+                mAppVolumeView.getPaddingTop(),
+                mAppVolumeView.getPaddingRight(),
+                mRingerRowsPadding
+        );
+        mAppVolumeIcon.setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(
+                        0, 0, view.getWidth(), view.getHeight(), mDialogCornerRadius
+                );
+            }
+        });
+        mAppVolumeIcon.setClipToOutline(true);
     }
 
     public void initAppVolumeH() {
+        int visibility = shouldShowAppVolume() ? VISIBLE : GONE;
         if (mAppVolumeView != null) {
-            mAppVolumeView.setVisibility(shouldShowAppVolume() ? VISIBLE : GONE);
-            mAppVolumeSpacer.setVisibility(shouldShowAppVolume() ? VISIBLE : GONE);
+            mAppVolumeView.setVisibility(visibility);
+        }
+        if (mAppVolumeSpacer != null) {
+            mAppVolumeSpacer.setVisibility(visibility);
         }
         if (mAppVolumeIcon != null) {
             mAppVolumeIcon.setOnClickListener(v -> {
@@ -1537,30 +1567,18 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 Intent intent = new Intent(Settings.Panel.ACTION_APP_VOLUME);
                 dismissH(DISMISS_REASON_SETTINGS_CLICKED);
                 Dependency.get(MediaOutputDialogFactory.class).dismiss();
-                Dependency.get(ActivityStarter.class).startActivity(intent,
-                        true /* dismissShade */);
+                Dependency.get(ActivityStarter.class).startActivity(intent, true /* dismissShade */);
             });
-            Drawable icon = mAppVolumeActivePackageName != null ?
-                    getApplicationIcon(mAppVolumeActivePackageName) : null;
-            if (icon != null) {
-                mAppVolumeIcon.setImageTintList(null);
-                mAppVolumeIcon.setImageDrawable(icon);
-                mAppVolumeIcon.getLayoutParams().height = mTargetTapSize;
-                mAppVolumeIcon.getLayoutParams().width = mTargetTapSize;
-                mAppVolumeIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                mAppVolumeIcon.setPadding(
-                        mAppVolumeView.getPaddingLeft(),
-                        mAppVolumeView.getPaddingTop(),
-                        mAppVolumeView.getPaddingRight(),
-                        mRingerRowsPadding);
-            	mAppVolumeIcon.setOutlineProvider(new ViewOutlineProvider() {
-                    @Override
-                    public void getOutline(View view, Outline outline) {
-                    	outline.setRoundRect(
-                            	0, 0, view.getWidth(), view.getHeight(), mDialogCornerRadius);
-                    }
-            	});
-            	mAppVolumeIcon.setClipToOutline(true);
+            mAppVolumeIcon.setOnLongClickListener(v -> {
+                PackageManager packageManager = mContext.getPackageManager();
+                try {
+                    Intent launchIntent = packageManager.getLaunchIntentForPackage(mAppVolumeActivePackageName);
+                    mContext.startActivity(launchIntent);
+                } catch (Exception ignored) {}
+                return true;
+            });
+            if (mAppVolumeActivePackageName != null) {
+                setupAppVolumeIcon();
             }
         }
     }
@@ -3013,6 +3031,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 }
             }
             triggerVibration();
+            playSound();
         }
 
         @Override
@@ -3033,6 +3052,27 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 mHandler.sendMessageDelayed(mHandler.obtainMessage(H.RECHECK, mRow),
                         USER_ATTEMPT_GRACE_PERIOD);
             }
+        }
+    }
+
+    private void initMediaPlayer() {
+        try {
+            mediaPlayer = MediaPlayer.create(mContext, R.raw.volume_control_sound);
+        } catch (Exception e) {
+            Log.d(TAG, "Error initializing media player");
+        }
+    }
+
+    private void playSound() {
+        AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+        if (audioManager == null || audioManager.isMusicActive() || mediaPlayer == null) {
+            return;
+        }
+        try {
+            mediaPlayer.seekTo(0);
+            mediaPlayer.start();
+        } catch (Exception e) {
+            Log.d(TAG, "Error playing sound effect");
         }
     }
 

@@ -5534,6 +5534,7 @@ public final class Settings {
          * Whether to show IME space
          * @hide
          */
+        @Readable
         public static final String HIDE_IME_SPACE_ENABLE = "hide_ime_space_enable";
 
         /**
@@ -6149,12 +6150,6 @@ public final class Settings {
         public static final String HEADS_UP_TIMEOUT = "heads_up_timeout";
 
         /**
-         * Enable/Disable screenshot sound
-         * @hide
-         */
-        public static final String SCREENSHOT_SHUTTER_SOUND = "screenshot_shutter_sound";
-
-        /**
          * Whether to use the custom quick unlock screen control
          * @hide
          */
@@ -6579,6 +6574,38 @@ public final class Settings {
         public static final String ENABLE_RIPPLE_EFFECT = "enable_ripple_effect";
 
         /**
+         * @hide
+         */
+        public static final String DOZE_TRIGGER_DOUBLETAP = "doze_trigger_doubletap";
+
+        /**
+         * @hide
+         */
+        public static final String SCREENSHOT_SHUTTER_SOUND = "screenshot_shutter_sound";
+
+        /**
+         * Whether to enable or disable vibration on succesful fingerprint auth
+         * @hide
+         */
+        public static final String FP_SUCCESS_VIBRATE = "fp_success_vibrate";
+
+        /**
+         * Whether to enable or disable vibration on failed fingerprint auth
+         * @hide
+         */
+        public static final String FP_ERROR_VIBRATE = "fp_error_vibrate";
+
+        /**
+         * @hide
+         */
+        public static final String PREVENT_POINTER_ACCELERATION = "prevent_pointer_acceleration";
+
+        /**
+         * @hide
+         */
+        public static final String FORCE_MOUSE_AS_TOUCH = "force_mouse_as_touch";
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
@@ -6718,6 +6745,8 @@ public final class Settings {
             PRIVATE_SETTINGS.add(TRANSPARENT_POWER_DIALOG_DIM);
             PRIVATE_SETTINGS.add(AMBIENT_TEXT_COLOR);
             PRIVATE_SETTINGS.add(AMBIENT_TEXT_TYPE_COLOR);
+            PRIVATE_SETTINGS.add(PREVENT_POINTER_ACCELERATION);
+            PRIVATE_SETTINGS.add(FORCE_MOUSE_AS_TOUCH);
         }
 
         /**
@@ -6732,6 +6761,7 @@ public final class Settings {
             CLONE_TO_MANAGED_PROFILE.add(SOUND_EFFECTS_ENABLED);
             CLONE_TO_MANAGED_PROFILE.add(TEXT_SHOW_PASSWORD);
             CLONE_TO_MANAGED_PROFILE.add(TIME_12_24);
+            CLONE_TO_MANAGED_PROFILE.add(FORCE_MOUSE_AS_TOUCH);
         }
 
         /** @hide */
@@ -12272,6 +12302,13 @@ public final class Settings {
          * @hide
          */
 	public static final String ENABLE_COMBINED_QS_HEADERS = "enable_combined_qs_headers";
+
+        /**
+         * Enable udfps detection even when screen is off
+         * Default value is 0
+         * @hide
+         */
+        public static final String SCREEN_OFF_UDFPS_ENABLED = "screen_off_udfps_enabled";
 
         /**
          * Keys we no longer back up under the current schema, but want to continue to

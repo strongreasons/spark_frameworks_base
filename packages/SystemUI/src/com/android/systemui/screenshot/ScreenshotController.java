@@ -257,6 +257,7 @@ public class ScreenshotController {
     static final String EXTRA_SMART_ACTIONS_ENABLED = "android:smart_actions_enabled";
     static final String EXTRA_OVERRIDE_TRANSITION = "android:screenshot_override_transition";
     static final String EXTRA_ACTION_INTENT = "android:screenshot_action_intent";
+    static final String EXTRA_ACTION_INTENT_FILLIN = "android:screenshot_action_intent_fillin";
 
     static final String SCREENSHOT_URI_ID = "android:screenshot_uri_id";
     static final String EXTRA_CANCEL_NOTIFICATION = "android:screenshot_cancel_notification";
@@ -1185,8 +1186,12 @@ public class ScreenshotController {
      * failure).
      */
     private void saveScreenshotAndToast(UserHandle owner, Consumer<Uri> finisher) {
-        // Play the shutter sound to notify that we've taken a screenshot
-        playCameraSound();
+
+        if (Settings.System.getIntForUser(mContext.getContentResolver(),
+            Settings.System.SCREENSHOT_SHUTTER_SOUND, 1, UserHandle.USER_CURRENT) == 1) {
+            // Play the shutter sound to notify that we've taken a screenshot
+            playCameraSound();
+        }
 
         saveScreenshotInWorkerThread(
                 owner,
@@ -1229,8 +1234,11 @@ public class ScreenshotController {
             });
         }
 
-        // Play the shutter sound to notify that we've taken a screenshot
-        playCameraSound();
+        if (Settings.System.getIntForUser(mContext.getContentResolver(),
+            Settings.System.SCREENSHOT_SHUTTER_SOUND, 1, UserHandle.USER_CURRENT) == 1) {
+            // Play the shutter sound to notify that we've taken a screenshot
+            playCameraSound();
+        }
 
         if (DEBUG_ANIM) {
             Log.d(TAG, "starting post-screenshot animation");

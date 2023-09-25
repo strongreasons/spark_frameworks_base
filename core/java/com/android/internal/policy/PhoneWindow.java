@@ -393,7 +393,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         // Even though the device doesn't support picture-in-picture mode,
         // an user can force using it through developer options.
         boolean forceResizable = Settings.Global.getInt(context.getContentResolver(),
-                DEVELOPMENT_FORCE_RESIZABLE_ACTIVITIES, 0) != 0;
+                DEVELOPMENT_FORCE_RESIZABLE_ACTIVITIES, 1) != 0;
         mSupportsPictureInPicture = forceResizable || context.getPackageManager().hasSystemFeature(
                 PackageManager.FEATURE_PICTURE_IN_PICTURE);
         mActivityConfigCallback = activityConfigCallback;
@@ -878,6 +878,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
 
             // This will populate st.shownPanelView
             if (!initializePanelContent(st) || !st.hasPanelItems()) {
+                closePanel(st, true);
                 return;
             }
 
@@ -923,9 +924,11 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
             }
         }
 
-        if (!st.hasPanelItems()) {
+        // This will populate st.shownPanelView if needed
+        if ((st.shownPanelView == null && !initializePanelContent(st)) || !st.hasPanelItems()) {
             // Ensure that |st.decorView| has its actual content. Otherwise, an empty window can be
             // created and cause ANR.
+            closePanel(st, true);
             return;
         }
 

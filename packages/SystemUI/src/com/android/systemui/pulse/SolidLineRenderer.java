@@ -25,6 +25,7 @@ package com.android.systemui.pulse;
 import android.animation.ValueAnimator;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.database.ContentObserver;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -164,7 +165,7 @@ public class SolidLineRenderer extends Renderer {
         if (mView.getWidth() > 0 && mView.getHeight() > 0) {
             mWidth = mView.getWidth();
             mHeight = mView.getHeight();
-            mVertical = mKeyguardShowing ? mHeight < mWidth : mHeight > mWidth;
+            mVertical = mContext.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
             loadValueAnimators();
             if (mVertical) {
                 setVerticalPoints();
@@ -185,9 +186,11 @@ public class SolidLineRenderer extends Renderer {
 
     @Override
     public void onFFTUpdate(byte[] fft) {
+        if (fft == null || fft.length < mUnits * 2 + 2) {
+            return;
+        }
         int fudgeFactor = mKeyguardShowing ? mDbFuzzFactor * 4 : mDbFuzzFactor;
-        int i = 0;
-        for (; i < (mCenterMirrored ? (mUnits / 4) : mUnits); i++) {
+        for (int i = 0; i < (mCenterMirrored ? (mUnits / 4) : mUnits) && i * 2 + 3 < fft.length; i++) {
             if (mValueAnimators[i] == null) continue;
             mValueAnimators[i].cancel();
             rfk = fft[i * 2 + 2];
@@ -220,7 +223,7 @@ public class SolidLineRenderer extends Renderer {
             mValueAnimators[i].start();
         }
         if (mCenterMirrored) {
-            for (; i < mUnits; i++) {
+            for (int i = (mUnits / 4); i < mUnits && (mUnits - (i + 1)) * 2 + 3 < fft.length; i++) {
                 int j = mUnits - (i + 1);
                 if (mValueAnimators[i] == null) continue;
                 mValueAnimators[i].cancel();
